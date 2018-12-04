@@ -3,6 +3,8 @@ import * as path from 'path'
 import * as electron from 'electron'
 import { EventEmitter } from 'events'
 
+import { markPromisified } from '@electron/internal/common/promise-utils'
+
 const bindings = process.atomBinding('app')
 const commandLine = process.atomBinding('command_line')
 const { app, App } = bindings
@@ -35,6 +37,10 @@ Object.assign(app, {
     deprecate.log(`'enableMixedSandbox' is deprecated. Mixed-sandbox mode is now enabled by default. You can safely remove the call to enableMixedSandbox().`)
   }
 })
+
+// Mark promisifed APIs
+markPromisified(app.getFileIcon)
+markPromisified(app.getGPUInfo)
 
 app.getFileIcon = deprecate.promisify(app.getFileIcon)
 
