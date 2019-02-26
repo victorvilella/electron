@@ -112,6 +112,10 @@
 #include "components/services/pdf_compositor/public/interfaces/pdf_compositor.mojom.h"
 #endif  // BUILDFLAG(ENABLE_PRINTING)
 
+#if BUILDFLAG(ENABLE_PDF_VIEWER)
+#include "extensions/browser/guest_view/extensions_guest_view_message_filter.h"
+#endif  // BUILDFLAG(ENABLE_PDF_VIEWER)
+
 using content::BrowserThread;
 
 namespace atom {
@@ -340,6 +344,11 @@ void AtomBrowserClient::RenderProcessWillLaunch(
 
 #if BUILDFLAG(ENABLE_TTS)
   host->AddFilter(new TtsMessageFilter(host->GetBrowserContext()));
+#endif
+
+#if BUILDFLAG(ENABLE_PDF_VIEWER)
+  host->AddFilter(new extensions::ExtensionsGuestViewMessageFilter(
+      process_id, host->GetBrowserContext()));
 #endif
 
   ProcessPreferences prefs;
