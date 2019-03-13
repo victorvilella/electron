@@ -1354,6 +1354,8 @@ void App::BuildPrototype(v8::Isolate* isolate,
                  base::Bind(&Browser::SetAboutPanelOptions, browser))
       .SetMethod("showAboutPanel",
                  base::Bind(&Browser::ShowAboutPanel, browser))
+      .SetProperty("badgeCount", base::Bind(&Browser::GetBadgeCount, browser),
+                   base::Bind(&Browser::SetBadgeCount, browser))
 #endif
 #if defined(OS_WIN)
       .SetMethod("setUserTasks", base::Bind(&Browser::SetUserTasks, browser))
