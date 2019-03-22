@@ -3686,6 +3686,11 @@ describe('BrowserWindow module', () => {
       w.loadFile(path.join(fixtures, 'api', 'offscreen-rendering.html'))
     })
 
+    it('does not crash after navigation', () => {
+      w.webContents.loadURL('about:blank')
+      w.loadFile(path.join(fixtures, 'api', 'offscreen-rendering.html'))
+    })
+
     describe('window.webContents.isOffscreen()', () => {
       it('is true for offscreen type', () => {
         w.loadFile(path.join(fixtures, 'api', 'offscreen-rendering.html'))
