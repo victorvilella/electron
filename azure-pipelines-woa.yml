@@ -1,0 +1,52 @@
+steps:
+- task: CopyFiles@2
+  displayName: 'Copy Files to: src\electron'
+  inputs:
+    TargetFolder: src\electron
+
+- script: |
+    cd src/electron
+    npm install --verbose
+  displayName: 'NPM install'
+
+- task: ExtractFiles@1
+  inputs:
+    archiveFilePatterns: 'dist.zip' 
+    destinationFolder: src\electron\out\Default
+
+- task: ExtractFiles@1
+  inputs:
+    archiveFilePatterns: 'ffmpeg.zip' 
+    destinationFolder: src\electron\out\ffmpeg
+
+- script: |
+    export ZIP_DEST=$PWD/src/out/Default
+    echo "##vso[task.setvariable variable=ZIP_DEST]$ZIP_DEST"
+    mkdir -p $ZIP_DEST
+    cd src/electron
+    node script/download-circleci-artifacts.js --buildNum=$CIRCLE_BUILD_NUM --name=dist.zip --dest=$ZIP_DEST
+    cd $ZIP_DEST
+    unzip -o dist.zip
+  displayName: 'Download and unzip dist files for test'
+  env:
+    CIRCLE_TOKEN: $(CIRCLECI_TOKEN)
+
+- script: |
+    export FFMPEG_ZIP_DEST=$PWD/src/out/ffmpeg
+    mkdir -p $FFMPEG_ZIP_DEST
+    cd src/electron
+    node script/download-circleci-artifacts.js --buildNum=$CIRCLE_BUILD_NUM --name=ffmpeg.zip --dest=$FFMPEG_ZIP_DEST
+    cd $FFMPEG_ZIP_DEST
+    unzip -o ffmpeg.zip
+  displayName: 'Download and unzip ffmpeg for test'
+  env:
+    CIRCLE_TOKEN: $(CIRCLECI_TOKEN)
+
+- script: |
+    cd src/electron
+    node script/download-circleci-artifacts.js --buildNum=$CIRCLE_BUILD_NUM --name=native_mksnapshot.zip --dest=$ZIP_DEST
+    cd $ZIP_DEST
+    unzip -o native_mksnapshot.zip
+  displayName: 'Download and unzip native_mksnapshot.zip for test'
+  env:
+    CIRCLE_TOKEN: $(CIRCLECI_TOKEN)
