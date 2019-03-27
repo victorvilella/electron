@@ -21,7 +21,8 @@ const circleCIJobs = [
 
 const vstsArmJobs = [
   'electron-arm-testing',
-  'electron-arm64-testing'
+  'electron-arm64-testing',
+  'electron-woa-testing'
 ]
 
 async function makeRequest (requestOptions, parseResponse) {
@@ -141,7 +142,11 @@ async function buildVSTS (targetBranch, options) {
   }
 
   if (options.armTest) {
-    environmentVariables.CIRCLE_BUILD_NUM = options.circleBuildNum
+    if (options.circleBuildNum) {
+      environmentVariables.CIRCLE_BUILD_NUM = options.circleBuildNum
+    } else if (options.appveyorJobId) {
+      environmentVariables.APPVEYOR_JOB_ID = options.appveyorJobId
+    }
   } else {
     if (!options.ghRelease) {
       environmentVariables.UPLOAD_TO_S3 = 1
@@ -229,7 +234,7 @@ if (require.main === module) {
   if (args._.length < 1) {
     console.log(`Trigger CI to build release builds of electron.
     Usage: ci-release-build.js [--job=CI_JOB_NAME] [--ci=CircleCI|AppVeyor|VSTS]
-    [--ghRelease] [--armTest] [--circleBuildNum=xxx] TARGET_BRANCH
+    [--ghRelease] [--armTest] [--circleBuildNum=xxx] [--appveyorJobId=xxx] TARGET_BRANCH
     `)
     process.exit(0)
   }

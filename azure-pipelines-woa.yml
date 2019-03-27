@@ -5,48 +5,82 @@ steps:
     TargetFolder: src\electron
 
 - script: |
-    cd src/electron
+    cd src\electron
     npm install --verbose
   displayName: 'NPM install'
+
+- powershell: |
+    $localArtifactPath = "$pwd\dist.zip"
+    Invoke-RestMethod -Method Get -Uri "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/dist.zip" -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
+  displayName: 'Download dist.zip for test'
+  env:
+    APPVEYOR_TOKEN: $(APPVEYOR_TOKEN)
 
 - task: ExtractFiles@1
   inputs:
     archiveFilePatterns: 'dist.zip' 
-    destinationFolder: src\electron\out\Default
+    destinationFolder: src\out\Default
+  displayName: 'Unzip dist files for test'
+
+- powershell: |
+    $localArtifactPath = "$pwd\ffmpeg.zip"
+    Invoke-RestMethod -Method Get -Uri "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/ffmpeg.zip" -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
+  displayName: 'Download ffmpeg.zip for test'
+  env:
+    APPVEYOR_TOKEN: $(APPVEYOR_TOKEN)
 
 - task: ExtractFiles@1
   inputs:
     archiveFilePatterns: 'ffmpeg.zip' 
-    destinationFolder: src\electron\out\ffmpeg
+    destinationFolder: src\out\ffmpeg
+  displayName: 'Unzip ffmpeg files for test'    
 
-- script: |
-    export ZIP_DEST=$PWD/src/out/Default
-    echo "##vso[task.setvariable variable=ZIP_DEST]$ZIP_DEST"
-    mkdir -p $ZIP_DEST
-    cd src/electron
-    node script/download-circleci-artifacts.js --buildNum=$CIRCLE_BUILD_NUM --name=dist.zip --dest=$ZIP_DEST
-    cd $ZIP_DEST
-    unzip -o dist.zip
-  displayName: 'Download and unzip dist files for test'
+- powershell: |
+    $localArtifactPath = "$pwd\mksnapshot.zip"
+    Invoke-RestMethod -Method Get -Uri "$env:APPVEYOR_URL/buildjobs/$env:$APPVEYOR_JOB_ID/artifacts/mksnapshot.zip" -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
+  displayName: 'Download mksnapshot.zip for test'
   env:
-    CIRCLE_TOKEN: $(CIRCLECI_TOKEN)
+    APPVEYOR_TOKEN: $(APPVEYOR_TOKEN)
 
-- script: |
-    export FFMPEG_ZIP_DEST=$PWD/src/out/ffmpeg
-    mkdir -p $FFMPEG_ZIP_DEST
-    cd src/electron
-    node script/download-circleci-artifacts.js --buildNum=$CIRCLE_BUILD_NUM --name=ffmpeg.zip --dest=$FFMPEG_ZIP_DEST
-    cd $FFMPEG_ZIP_DEST
-    unzip -o ffmpeg.zip
-  displayName: 'Download and unzip ffmpeg for test'
-  env:
-    CIRCLE_TOKEN: $(CIRCLECI_TOKEN)
+- task: ExtractFiles@1
+  inputs:
+    archiveFilePatterns: 'mksnapshot.zip' 
+    destinationFolder: src\out\Default
+  displayName: 'Unzip mksnapshot for test'
 
-- script: |
-    cd src/electron
-    node script/download-circleci-artifacts.js --buildNum=$CIRCLE_BUILD_NUM --name=native_mksnapshot.zip --dest=$ZIP_DEST
-    cd $ZIP_DEST
-    unzip -o native_mksnapshot.zip
-  displayName: 'Download and unzip native_mksnapshot.zip for test'
+- powershell: |
+    $localArtifactPath = "$pwd\node_headers.zip"
+    Invoke-RestMethod -Method Get -Uri "$env:APPVEYOR_URL/buildjobs/$env:$APPVEYOR_JOB_ID/artifacts/node_headers.zip" -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
+  displayName: 'Download node headers for test'
   env:
-    CIRCLE_TOKEN: $(CIRCLECI_TOKEN)
+    APPVEYOR_TOKEN: $(APPVEYOR_TOKEN)
+
+- task: ExtractFiles@1
+  inputs:
+    archiveFilePatterns: 'node_headers.zip'
+    destinationFolder: src\out\Default\gen\node_headers
+  displayName: 'Unzip node headers for test'
+
+- powershell: |
+    New-Item src\out\Default\gen\node_headers\Release -Type directory
+    Copy-Item -path src\out\Default\electron.lib -destination src\out\Default\gen\node_headers\Release\node.lib
+  displayName: 'Setup node headers'
+
+- shell: |
+    cd src\electron
+    echo "Running test suite"
+    npm run test -- --ci --enable-logging
+    echo "Done running test suite"
+  displayName: 'Run Electron tests'
+
+- shell: |
+    cd src
+    echo "Verifying non proprietary ffmpeg"
+    python electron\script\verify-ffmpeg.py --build-dir out\Default --source-root %cd% --ffmpeg-path out\ffmpeg
+  displayName: 'Verify ffmpeg'
+
+- shell: |
+    cd src
+    echo "Verifying mksnapshot"
+    python electron\script\verify-mksnapshot.py --build-dir out\Default --source-root %cd%
+  displayName: 'Verify mksnapshot'  

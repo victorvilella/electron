@@ -68,6 +68,8 @@ build_script:
   - appveyor PushArtifact out/Default/dist.zip
   - appveyor PushArtifact out/Default/chromedriver.zip
   - appveyor PushArtifact out/ffmpeg/ffmpeg.zip
+  - 7z a node_headers.zip out\Default\gen\node_headers
+  - appveyor PushArtifact node_headers.zip
   - ps: >-
       if ($env:GN_CONFIG -eq 'release') {
         ninja -C out/Default third_party/breakpad:dump_syms
@@ -110,4 +112,7 @@ deploy_script:
           Write-Output "Uploading Electron release distribution to github releases"
           & python script\upload.py
         }
+      }
+      if (Test-Path Env:\TEST_WOA) {
+        node electron/script/ci-release-build.js --job=electron-woa-testing --ci=VSTS --armTest --appveyorJobId=$APPVEYOR_JOB_ID $APPVEYOR_REPO_BRANCH
       }
