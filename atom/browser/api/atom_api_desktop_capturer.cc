@@ -173,9 +173,11 @@ void DesktopCapturer::UpdateSourcesList(DesktopMediaList* list) {
           webrtc::DxgiDuplicatorController::Instance()->GetDeviceNames(
               &device_names);
 
-      if (!success)
+      if (!success) {
         Emit("finished",
              "Failed to get device names of all screens on the system.");
+        return;
+      }
 
       int device_name_index = 0;
       for (auto& source : screen_sources) {
