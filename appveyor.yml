@@ -112,7 +112,6 @@ deploy_script:
           Write-Output "Uploading Electron release distribution to github releases"
           & python script\upload.py
         }
-      }
-      if (Test-Path Env:\TEST_WOA) {
-        node electron/script/ci-release-build.js --job=electron-woa-testing --ci=VSTS --armTest --appveyorJobId=$APPVEYOR_JOB_ID $APPVEYOR_REPO_BRANCH
+      } elseif (Test-Path Env:\TEST_WOA) {
+        node script/ci-release-build.js --job=electron-woa-testing --ci=VSTS --armTest --appveyorJobId=$APPVEYOR_JOB_ID $APPVEYOR_REPO_BRANCH
       }
