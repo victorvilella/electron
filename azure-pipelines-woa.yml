@@ -12,8 +12,6 @@ steps:
 - powershell: |
     $localArtifactPath = "$pwd\dist.zip"
     $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/dist.zip"
-    echo "Path is"
-    echo $serverArtifactPath
     Invoke-RestMethod -Method Get -Uri $serverArtifactPath -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
   displayName: 'Download dist.zip for test'
   env:
@@ -27,7 +25,8 @@ steps:
 
 - powershell: |
     $localArtifactPath = "$pwd\ffmpeg.zip"
-    Invoke-RestMethod -Method Get -Uri "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/ffmpeg.zip" -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
+    $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/ffmpeg.zip"
+    Invoke-RestMethod -Method Get -Uri $serverArtifactPath -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
   displayName: 'Download ffmpeg.zip for test'
   env:
     APPVEYOR_TOKEN: $(APPVEYOR_TOKEN)
@@ -40,7 +39,8 @@ steps:
 
 - powershell: |
     $localArtifactPath = "$pwd\mksnapshot.zip"
-    Invoke-RestMethod -Method Get -Uri "$env:APPVEYOR_URL/buildjobs/$env:$APPVEYOR_JOB_ID/artifacts/mksnapshot.zip" -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
+    $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/mksnapshot.zip" 
+    Invoke-RestMethod -Method Get -Uri $serverArtifactPath -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
   displayName: 'Download mksnapshot.zip for test'
   env:
     APPVEYOR_TOKEN: $(APPVEYOR_TOKEN)
@@ -53,7 +53,8 @@ steps:
 
 - powershell: |
     $localArtifactPath = "$pwd\node_headers.zip"
-    Invoke-RestMethod -Method Get -Uri "$env:APPVEYOR_URL/buildjobs/$env:$APPVEYOR_JOB_ID/artifacts/node_headers.zip" -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
+    $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/node_headers.zip" 
+    Invoke-RestMethod -Method Get -Uri $serverArtifactPath -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
   displayName: 'Download node headers for test'
   env:
     APPVEYOR_TOKEN: $(APPVEYOR_TOKEN)
@@ -86,4 +87,4 @@ steps:
     cd src
     echo "Verifying mksnapshot"
     python electron\script\verify-mksnapshot.py --build-dir out\Default --source-root %cd%
-  displayName: 'Verify mksnapshot'  
+  displayName: 'Verify mksnapshot'
