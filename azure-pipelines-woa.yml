@@ -66,20 +66,20 @@ steps:
     Copy-Item -path src\out\Default\electron.lib -destination src\out\Default\gen\node_headers\Release\node.lib
   displayName: 'Setup node headers'
 
-- shell: |
+- script: |
     cd src\electron
     echo "Running test suite"
     npm run test -- --ci --enable-logging
     echo "Done running test suite"
   displayName: 'Run Electron tests'
 
-- shell: |
+- script: |
     cd src
     echo "Verifying non proprietary ffmpeg"
     python electron\script\verify-ffmpeg.py --build-dir out\Default --source-root %cd% --ffmpeg-path out\ffmpeg
   displayName: 'Verify ffmpeg'
 
-- shell: |
+- script: |
     cd src
     echo "Verifying mksnapshot"
     python electron\script\verify-mksnapshot.py --build-dir out\Default --source-root %cd%
