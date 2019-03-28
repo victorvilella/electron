@@ -11,7 +11,10 @@ steps:
 
 - powershell: |
     $localArtifactPath = "$pwd\dist.zip"
-    Invoke-RestMethod -Method Get -Uri "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/dist.zip" -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
+    $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/dist.zip"
+    echo "Path is"
+    echo $serverArtifactPath
+    Invoke-RestMethod -Method Get -Uri $serverArtifactPath -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
   displayName: 'Download dist.zip for test'
   env:
     APPVEYOR_TOKEN: $(APPVEYOR_TOKEN)
