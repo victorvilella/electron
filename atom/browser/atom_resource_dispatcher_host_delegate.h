@@ -10,6 +10,10 @@
 #include "content/public/browser/resource_dispatcher_host_delegate.h"
 #include "electron/buildflags/buildflags.h"
 
+#if BUILDFLAG(ENABLE_PDF_VIEWER)
+#include "content/public/common/transferrable_url_loader.mojom.h"
+#endif
+
 namespace atom {
 
 class AtomResourceDispatcherHostDelegate
@@ -26,6 +30,19 @@ class AtomResourceDispatcherHostDelegate
 
   void OnStreamCreated(net::URLRequest* request,
                        std::unique_ptr<content::StreamInfo> stream) override;
+
+#if BUILDFLAG(ENABLE_PDF_VIEWER)
+  static void OnPdfResourceIntercepted(
+      const std::string& extension_id,
+      const std::string& view_id,
+      bool embedded,
+      int frame_tree_node_id,
+      int render_process_id,
+      int render_frame_id,
+      std::unique_ptr<content::StreamInfo> stream,
+      content::mojom::TransferrableURLLoaderPtr transferrable_loader,
+      const GURL& original_url);
+#endif
 
  private:
   DISALLOW_COPY_AND_ASSIGN(AtomResourceDispatcherHostDelegate);

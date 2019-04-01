@@ -32,10 +32,55 @@ using content::BrowserThread;
 
 namespace atom {
 
-namespace {
+AtomResourceDispatcherHostDelegate::AtomResourceDispatcherHostDelegate() {}
+AtomResourceDispatcherHostDelegate::~AtomResourceDispatcherHostDelegate() {
+#if BUILDFLAG(ENABLE_PDF_VIEWER)
+  CHECK(stream_target_info_.empty());
+#endif
+}
+
+bool AtomResourceDispatcherHostDelegate::ShouldInterceptResourceAsStream(
+    net::URLRequest* request,
+    const std::string& mime_type,
+    GURL* origin,
+    std::string* payload) {
+#if BUILDFLAG(ENABLE_PDF_VIEWER)
+  if (mime_type == "application/pdf") {
+    StreamTargetInfo target_info;
+    *origin = GURL(base::StrCat({"chrome-extension://", kPdfExtensionId}));
+    target_info.extension_id = kPdfExtensionId;
+    target_info.view_id = base::GenerateGUID();
+    *payload = target_info.view_id;
+    stream_target_info_[request] = target_info;
+    return true;
+  }
+#endif  // BUILDFLAG(ENABLE_PDF_VIEWER)
+  return false;
+}
+
+void AtomResourceDispatcherHostDelegate::OnStreamCreated(
+    net::URLRequest* request,
+    std::unique_ptr<content::StreamInfo> stream) {
+#if BUILDFLAG(ENABLE_PDF_VIEWER)
+  const content::ResourceRequestInfo* info =
+      content::ResourceRequestInfo::ForRequest(request);
+  auto ix = stream_target_info_.find(request);
+  CHECK(ix != stream_target_info_.end());
+  bool embedded = info->GetResourceType() != content::RESOURCE_TYPE_MAIN_FRAME;
+  base::PostTaskWithTraits(
+      FROM_HERE, {content::BrowserThread::UI},
+      base::BindOnce(
+          &AtomResourceDispatcherHostDelegate::OnPdfResourceIntercepted,
+          ix->second.extension_id, ix->second.view_id, embedded,
+          info->GetFrameTreeNodeId(), info->GetChildID(),
+          info->GetRenderFrameID(), std::move(stream),
+          nullptr /* transferrable_loader */, GURL()));
+  stream_target_info_.erase(request);
+#endif
+}
 
 #if BUILDFLAG(ENABLE_PDF_VIEWER)
-void OnPdfResourceIntercepted(
+void AtomResourceDispatcherHostDelegate::OnPdfResourceIntercepted(
     const std::string& extension_id,
     const std::string& view_id,
     bool embedded,
@@ -74,53 +119,5 @@ void OnPdfResourceIntercepted(
                   render_process_id, render_frame_id);
 }
 #endif  // BUILDFLAG(ENABLE_PDF_VIEWER)
-
-}  // namespace
-
-AtomResourceDispatcherHostDelegate::AtomResourceDispatcherHostDelegate() {}
-AtomResourceDispatcherHostDelegate::~AtomResourceDispatcherHostDelegate() {
-#if BUILDFLAG(ENABLE_PDF_VIEWER)
-  CHECK(stream_target_info_.empty());
-#endif
-}
-
-bool AtomResourceDispatcherHostDelegate::ShouldInterceptResourceAsStream(
-    net::URLRequest* request,
-    const std::string& mime_type,
-    GURL* origin,
-    std::string* payload) {
-#if BUILDFLAG(ENABLE_PDF_VIEWER)
-  if (mime_type == "application/pdf") {
-    StreamTargetInfo target_info;
-    *origin = GURL(base::StrCat({"chrome-extension://", kPdfExtensionId}));
-    target_info.extension_id = kPdfExtensionId;
-    target_info.view_id = base::GenerateGUID();
-    *payload = target_info.view_id;
-    stream_target_info_[request] = target_info;
-    return true;
-  }
-#endif  // BUILDFLAG(ENABLE_PDF_VIEWER)
-  return false;
-}
-
-void AtomResourceDispatcherHostDelegate::OnStreamCreated(
-    net::URLRequest* request,
-    std::unique_ptr<content::StreamInfo> stream) {
-#if BUILDFLAG(ENABLE_PDF_VIEWER)
-  const content::ResourceRequestInfo* info =
-      content::ResourceRequestInfo::ForRequest(request);
-  auto ix = stream_target_info_.find(request);
-  CHECK(ix != stream_target_info_.end());
-  bool embedded = info->GetResourceType() != content::RESOURCE_TYPE_MAIN_FRAME;
-  base::PostTaskWithTraits(
-      FROM_HERE, {content::BrowserThread::UI},
-      base::BindOnce(&OnPdfResourceIntercepted, ix->second.extension_id,
-                     ix->second.view_id, embedded, info->GetFrameTreeNodeId(),
-                     info->GetChildID(), info->GetRenderFrameID(),
-                     std::move(stream), nullptr /* transferrable_loader */,
-                     GURL()));
-  stream_target_info_.erase(request);
-#endif
-}
 
 }  // namespace atom
