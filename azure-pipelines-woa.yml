@@ -62,8 +62,16 @@ steps:
 - task: ExtractFiles@1
   inputs:
     archiveFilePatterns: 'node_headers.zip'
-    destinationFolder: src\out\Default\gen\node_headers
+    destinationFolder: src
   displayName: 'Unzip node headers for test'
+
+- powershell: |
+    $localArtifactPath = src\out\Default\electron.lib
+    $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/electron.lib" 
+    Invoke-RestMethod -Method Get -Uri $serverArtifactPath -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
+  displayName: 'Download electron.lib for test'
+  env:
+    APPVEYOR_TOKEN: $(APPVEYOR_TOKEN)
 
 - powershell: |
     New-Item src\out\Default\gen\node_headers\Release -Type directory
