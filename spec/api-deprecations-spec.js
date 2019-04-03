@@ -148,18 +148,16 @@ describe('deprecations', () => {
     const warnings = []
     deprecations.setHandler(warning => warnings.push(warning))
 
-    function oldGetterFn () { return 'getter' }
-    function oldSetterFn () { return 'setter' }
-
     const newProp = 'myRadProp'
+    const mod = {
+      _oldGetterFn () { return 'getter' },
+      _oldSetterFn () { return 'setter' }
+    }
 
-    const [
-      deprecatedGetter,
-      deprecatedSetter
-    ] = deprecate.fnToProperty(newProp, oldGetterFn, oldSetterFn)
+    deprecate.fnToProperty(mod, 'newProp', '_oldGetterFn', '_oldSetterFn')
 
-    deprecatedGetter()
-    deprecatedSetter()
+    mod['oldGetterFn']()
+    mod['oldSetterFn']()
 
     expect(warnings).to.have.lengthOf(2)
 
