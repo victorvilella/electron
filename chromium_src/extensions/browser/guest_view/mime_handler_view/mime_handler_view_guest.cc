@@ -22,15 +22,19 @@
 #include "content/public/common/url_constants.h"
 #include "content/public/common/web_preferences.h"
 #include "extensions/browser/api/mime_handler_private/mime_handler_private.h"
+#include "extensions/browser/event_router.h"
 #include "extensions/browser/guest_view/mime_handler_view/mime_handler_stream_manager.h"
 #include "extensions/browser/guest_view/mime_handler_view/mime_handler_view_constants.h"
 #include "extensions/browser/guest_view/mime_handler_view/mime_handler_view_guest_delegate.h"
 #include "extensions/browser/process_manager.h"
 #include "extensions/browser/view_type_utils.h"
+#include "extensions/common/api/mime_handler_private.h"
 #include "extensions/common/constants.h"
 #include "extensions/common/guest_view/extensions_guest_view_messages.h"
+#include "extensions/common/mojo/guest_view.mojom.h"
 #include "extensions/strings/grit/extensions_strings.h"
 #include "services/service_manager/public/cpp/binder_registry.h"
+#include "services/service_manager/public/cpp/interface_provider.h"
 #include "third_party/blink/public/platform/web_gesture_event.h"
 
 using content::WebContents;
@@ -104,8 +108,9 @@ MimeHandlerViewGuest::~MimeHandlerViewGuest() {
   if (content::MimeHandlerViewMode::UsesCrossProcessFrame() &&
       element_instance_id() != guest_view::kInstanceIDNone) {
     if (auto* embedder_frame = GetEmbedderFrame()) {
-      embedder_frame->Send(new ExtensionsGuestViewMsg_DestroyFrameContainer(
-          element_instance_id()));
+      mojom::MimeHandlerViewContainerManagerPtr container_manager;
+      embedder_frame->GetRemoteInterfaces()->GetInterface(&container_manager);
+      container_manager->DestroyFrameContainer(element_instance_id());
     }
   }
 }
@@ -143,7 +148,6 @@ void MimeHandlerViewGuest::SetEmbedderFrame(int process_id, int routing_id) {
     embedder_widget_routing_id_ =
         rfh->GetView()->GetRenderWidgetHost()->GetRoutingID();
   }
-
   DCHECK_NE(MSG_ROUTING_NONE, embedder_widget_routing_id_);
 }
 
@@ -153,7 +157,7 @@ void MimeHandlerViewGuest::SetBeforeUnloadController(
 }
 
 const char* MimeHandlerViewGuest::GetAPINamespace() const {
-  return "mimeHandlerViewGuestInternal";
+  return mime_handler_view::kAPINamespace;
 }
 
 int MimeHandlerViewGuest::GetTaskPrefix() const {
@@ -268,6 +272,7 @@ void MimeHandlerViewGuest::NavigationStateChanged(
 }
 
 bool MimeHandlerViewGuest::HandleContextMenu(
+    content::RenderFrameHost* render_frame_host,
     const content::ContextMenuParams& params) {
   return delegate_ && delegate_->HandleContextMenu(web_contents(), params);
 }
@@ -296,6 +301,29 @@ MimeHandlerViewGuest::GetJavaScriptDialogManager(WebContents* source) {
   // JavaScriptDialogManager we will be honest about who we are.
   return owner_web_contents()->GetDelegate()->GetJavaScriptDialogManager(
       owner_web_contents());
+}
+
+bool MimeHandlerViewGuest::PluginDoSave() {
+  if (!attached() || !plugin_can_save_)
+    return false;
+
+  base::ListValue::ListStorage args;
+  args.emplace_back(stream_->stream_url().spec());
+
+  auto event = std::make_unique<Event>(
+      events::MIME_HANDLER_PRIVATE_SAVE,
+      api::mime_handler_private::OnSave::kEventName,
+      std::make_unique<base::ListValue>(std::move(args)), browser_context());
+  EventRouter* event_router = EventRouter::Get(browser_context());
+  event_router->DispatchEventToExtension(extension_misc::kPdfExtensionId,
+                                         std::move(event));
+  return true;
+}
+
+bool MimeHandlerViewGuest::GuestSaveFrame(
+    content::WebContents* guest_web_contents) {
+  MimeHandlerViewGuest* guest_view = FromWebContents(guest_web_contents);
+  return guest_view == this && PluginDoSave();
 }
 
 bool MimeHandlerViewGuest::SaveFrame(const GURL& url,
@@ -382,6 +410,12 @@ void MimeHandlerViewGuest::DocumentOnLoadCompletedInMainFrame() {
   // If the guest is embedded inside a cross-process frame and the frame is
   // removed before the guest is properly loaded, then owner RenderWidgetHost
   // will be nullptr.
+  if (CanUseCrossProcessFrames()) {
+    mojom::MimeHandlerViewContainerManagerPtr container_manager;
+    GetEmbedderFrame()->GetRemoteInterfaces()->GetInterface(&container_manager);
+    container_manager->DidLoad(element_instance_id());
+    return;
+  }
   if (auto* rwh = GetOwnerRenderWidgetHost()) {
     rwh->Send(new ExtensionsGuestViewMsg_MimeHandlerViewGuestOnLoadCompleted(
         element_instance_id()));

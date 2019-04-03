@@ -62,7 +62,7 @@ void AtomResourceDispatcherHostDelegate::OnStreamCreated(
     net::URLRequest* request,
     std::unique_ptr<content::StreamInfo> stream) {
 #if BUILDFLAG(ENABLE_PDF_VIEWER)
-  const content::ResourceRequestInfo* info =
+  content::ResourceRequestInfo* info =
       content::ResourceRequestInfo::ForRequest(request);
   auto ix = stream_target_info_.find(request);
   CHECK(ix != stream_target_info_.end());
