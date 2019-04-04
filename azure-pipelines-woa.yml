@@ -19,7 +19,7 @@ steps:
 
 - task: ExtractFiles@1
   inputs:
-    archiveFilePatterns: 'dist.zip' 
+    archiveFilePatterns: 'dist.zip'
     destinationFolder: src\out\Default
   displayName: 'Unzip dist files for test'
 
@@ -33,13 +33,13 @@ steps:
 
 - task: ExtractFiles@1
   inputs:
-    archiveFilePatterns: 'ffmpeg.zip' 
+    archiveFilePatterns: 'ffmpeg.zip'
     destinationFolder: src\out\ffmpeg
-  displayName: 'Unzip ffmpeg files for test'    
+  displayName: 'Unzip ffmpeg files for test'
 
 - powershell: |
     $localArtifactPath = "$pwd\mksnapshot.zip"
-    $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/mksnapshot.zip" 
+    $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/mksnapshot.zip"
     Invoke-RestMethod -Method Get -Uri $serverArtifactPath -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
   displayName: 'Download mksnapshot.zip for test'
   env:
@@ -47,13 +47,13 @@ steps:
 
 - task: ExtractFiles@1
   inputs:
-    archiveFilePatterns: 'mksnapshot.zip' 
+    archiveFilePatterns: 'mksnapshot.zip'
     destinationFolder: src\out\Default
   displayName: 'Unzip mksnapshot for test'
 
 - powershell: |
     $localArtifactPath = "$pwd\node_headers.zip"
-    $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/node_headers.zip" 
+    $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/node_headers.zip"
     Invoke-RestMethod -Method Get -Uri $serverArtifactPath -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
   displayName: 'Download node headers for test'
   env:
@@ -66,8 +66,8 @@ steps:
   displayName: 'Unzip node headers for test'
 
 - powershell: |
-    $localArtifactPath = src\out\Default\electron.lib
-    $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/electron.lib" 
+    $localArtifactPath = "$pwd\src\out\Default\electron.lib"
+    $serverArtifactPath = "$env:APPVEYOR_URL/buildjobs/$env:APPVEYOR_JOB_ID/artifacts/electron.lib"
     Invoke-RestMethod -Method Get -Uri $serverArtifactPath -OutFile $localArtifactPath -Headers @{ "Authorization" = "Bearer $env:APPVEYOR_TOKEN" }
   displayName: 'Download electron.lib for test'
   env:
